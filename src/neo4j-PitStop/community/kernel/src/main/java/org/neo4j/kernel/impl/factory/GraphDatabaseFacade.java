@@ -1936,8 +1936,10 @@ public class GraphDatabaseFacade implements GraphDatabaseAPI, EmbeddedProxySPI {
     }
 
     // Limits for batching
-    private int BATCH_LIMIT = 500;
+    private int BATCH_LIMIT = 750;
     private long BATCH_TIME_LIMIT = 750; //ms
+
+    private boolean READ_ONLY_MODE = true;
 
 
     // Attempt to do batching with op
@@ -1958,13 +1960,16 @@ public class GraphDatabaseFacade implements GraphDatabaseAPI, EmbeddedProxySPI {
                 }
 		
 		// In use
-                if( !((BatchedFind)current).lock.tryLock() ) {
-		    // On read-only streams, this can also be converted to
-		    // i++;
-		    // continue;
-		    break;
-                }
-		
+        	if( !((BatchedFind)current).lock.tryLock() ) {
+           	    if(READ_ONLY_MODE) {
+                	i++;
+                	continue;
+            	    }
+            	    else {
+                	break;
+            	    }
+        	}
+
 		// Cant be batched (too far)
                 if( !canBeBatched( (BatchedNodeLabelPropertyIterator)((BatchedFind)current).iterator, (BatchedNodeLabelPropertyIterator)currentlyBatching.iterator )) {
 		    break;
@@ -2002,11 +2007,13 @@ public class GraphDatabaseFacade implements GraphDatabaseAPI, EmbeddedProxySPI {
 		
 		// In use
 		if( !((BatchedFind)current).lock.tryLock() ) {
-		    // On read-only streams, this can also be converted to
-		    // i--;
-		    // continue;
-		     
-		    break;
+                    if(READ_ONLY_MODE) {
+                         i--;
+                         continue;
+                    }
+                    else {
+                         break;
+                    }
 		}
 	    
 		// Cant be batched (too far)
@@ -2713,12 +2720,12 @@ public class GraphDatabaseFacade implements GraphDatabaseAPI, EmbeddedProxySPI {
     /* ========================= MULTITHREADING ========================= */
 
     ExecutorService thread_pool = Executors.newFixedThreadPool(NUM_THREADS);
-        private void cyclePropagate() {
+    private void cyclePropagate() {
         while (this.INPUT_LEFT || this.numOperationsRemaining() != 0) {
-	    boolean did_work = doPropagate();
-	    if(!this.INPUT_LEFT && !did_work) {
-		break;
-	    }
+    	    boolean did_work = doPropagate();
+    	    if(!this.INPUT_LEFT && !did_work) {
+    		break;
+    	    }
         }	
     }
 
@@ -2841,11 +2848,13 @@ public class GraphDatabaseFacade implements GraphDatabaseAPI, EmbeddedProxySPI {
                         break;
                 }
                 this.createNodeWithRelationship(myLabel, add_key, add_val, myLabel, add_rel_key, add_rel_val, dir);
+                this.READ_ONLY_MODE = false;
                 break;
             case "delete":
                 String k_to_delete = line.next();
                 int k_d = Integer.parseInt(k_to_delete);
                 this.queryDelete(myLabel, "userId", k_d);
+                this.READ_ONLY_MODE = false;
                 break;
             case "find":
                 String k_to_find = line.next();
@@ -2898,6 +2907,7 @@ public class GraphDatabaseFacade implements GraphDatabaseAPI, EmbeddedProxySPI {
                 String newKey = line.next();
                 int newVal = Integer.parseInt(line.next());
                 this.update(myLabel, findKey, findVal, newKey, newVal);
+                this.READ_ONLY_MODE = false;
                 break;
 	    default:
 	        System.out.println("Error: unknown operation " + str);
