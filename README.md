@@ -1,7 +1,10 @@
 # PitStop
 
-This repository holds the raw data and prototype used in the experimental evaluation for the paper "PitStop: Pausable Online Processing for Dynamic Data".
+This repository holds the raw data and prototype used in the experimental evaluation for the paper "PitStop: Pausable Online Processing for Dynamic Data".  
 
+The goal of PitStop is to use lazy evaluation to improve both throughput and operation latency for data processing systems. PitStop allows for queries and updates to be temporarily halted mid-traversal and continued at a later time. Though it may seem counter intuitive, this pausing allows for a fine-grained parallelism that helps to balance workload and alleviate workload fluctuation. This design also allows for further query optimization through the use of techniques such as *batching* and *fusion*.
+
+This repository contains the source code and tester code used to run the experiments. Instructions for importing the Twitter dataset used in the paper are also included, as well as sample traces for both the operation streams and input intervals.
    
 ## Running the Prototype
 
